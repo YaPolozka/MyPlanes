@@ -50,7 +50,7 @@ import java.time.format.FormatStyle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    onAddTask: () -> Unit,
+    onAddTask: (Quadrant) -> Unit,
     viewModel: MainViewModel = viewModel()
 ) {
     val tasksByQuadrant by viewModel.tasksByQuadrant.collectAsStateWithLifecycle()
@@ -60,7 +60,7 @@ fun MainScreen(
     Scaffold(
         topBar = { CenterAlignedTopAppBar(title = { Text("MyPlanes") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTask) {
+            FloatingActionButton(onClick = { onAddTask(quadrants[selectedTab]) }) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить задачу")
             }
         }
