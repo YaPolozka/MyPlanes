@@ -1,5 +1,12 @@
 package com.example.myplanes.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,6 +80,27 @@ fun AddTaskScreen(
     val reminderValue = reminder
     val reminderInPast = reminderValue != null && reminderValue.isBefore(LocalDateTime.now())
     val canSave = title.isNotBlank() && !reminderInPast && !saving
+
+    val context = LocalContext.current
+
+    val save = {
+        saving = true
+        viewModel.addTask(
+            title = title,
+            description = description,
+            quadrant = quadrant,
+            deadline = deadline?.let { endOfDayMillis(it) },
+            reminderAt = reminder?.let {
+                it.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            },
+            onSaved = onBack
+        )
+    }
+
+    // Задача сохраняется в любом случае, даже если разрешение не дали
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { save() }
 
     Scaffold(
         topBar = {
@@ -155,17 +183,18 @@ fun AddTaskScreen(
 
             Button(
                 onClick = {
-                    saving = true
-                    viewModel.addTask(
-                        title = title,
-                        description = description,
-                        quadrant = quadrant,
-                        deadline = deadline?.let { endOfDayMillis(it) },
-                        reminderAt = reminder?.let {
-                            it.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        },
-                        onSaved = onBack
-                    )
+                    val needsPermission = reminder != null &&
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.POST_NOTIFICATIONS
+                            ) != PackageManager.PERMISSION_GRANTED
+
+                    if (needsPermission) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        save()
+                    }
                 },
                 enabled = canSave,
                 modifier = Modifier.fillMaxWidth()

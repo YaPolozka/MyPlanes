@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myplanes.data.AppDatabase
 import com.example.myplanes.data.Quadrant
 import com.example.myplanes.data.Task
+import com.example.myplanes.reminders.ReminderScheduler
 import kotlinx.coroutines.launch
 
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
@@ -21,7 +22,7 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
         onSaved: () -> Unit
     ) {
         viewModelScope.launch {
-            dao.insert(
+            val id = dao.insert(
                 Task(
                     title = title.trim(),
                     description = description.trim(),
@@ -30,6 +31,9 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
                     reminderAt = reminderAt
                 )
             )
+            if (reminderAt != null) {
+                ReminderScheduler.schedule(getApplication(), id, reminderAt)
+            }
             onSaved()
         }
     }
